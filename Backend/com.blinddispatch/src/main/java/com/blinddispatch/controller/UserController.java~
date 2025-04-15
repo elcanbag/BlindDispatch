@@ -1,0 +1,4 @@
+package com.blinddispatch.controller;
+
+public class UserController {
+}
