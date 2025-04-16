@@ -1,0 +1,45 @@
+package com.blinddispatch.service;
+
+import com.blinddispatch.dto.MessageRequest;
+import com.blinddispatch.model.Message;
+import com.blinddispatch.model.User;
+import com.blinddispatch.repository.MessageRepository;
+import com.blinddispatch.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import java.time.LocalDateTime;
+import java.util.List;
+
+@Service
+@RequiredArgsConstructor
+public class MessageService {
+
+    private final UserRepository userRepository;
+    private final MessageRepository messageRepository;
+
+
+    public Message sendMessage(String senderUsername, MessageRequest messageRequest) {
+        User sender = userRepository.findByUsername(senderUsername)
+                .orElseThrow(() -> new RuntimeException("Sender not found"));
+        User recipient = userRepository.findByUsername(messageRequest.getRecipientUsername())
+                .orElseThrow(() -> new RuntimeException("Recipient not found"));
+
+        Message message = Message.builder()
+                .sender(sender)
+                .recipient(recipient)
+                .content(messageRequest.getContent())
+                .sentAt(LocalDateTime.now())
+                .build();
+        return messageRepository.save(message);
+    }
+
+
+    public List<Message> getConversation(String user1, String user2) {
+        User u1 = userRepository.findByUsername(user1)
+                .orElseThrow(() -> new RuntimeException("User1 not found"));
+        User u2 = userRepository.findByUsername(user2)
+                .orElseThrow(() -> new RuntimeException("User2 not found"));
+
+        return messageRepository.findBySenderAndRecipientOrSenderAndRecipient(u1, u2, u2, u1);
+    }
+}

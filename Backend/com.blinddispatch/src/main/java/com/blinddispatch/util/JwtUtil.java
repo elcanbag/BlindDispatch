@@ -1,5 +1,6 @@
 package com.blinddispatch.util;
 
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
@@ -10,7 +11,7 @@ import java.util.Date;
 @Component
 public class JwtUtil {
     private final Key key = Keys.secretKeyFor(SignatureAlgorithm.HS256);
-    private final long expirationMillis = 15 * 60 * 1000; // 15 dakika
+    private final long expirationMillis = 15 * 60 * 1000;
 
     public String generateToken(Long userId, String username) {
         Date now = new Date();
@@ -22,5 +23,14 @@ public class JwtUtil {
                 .setExpiration(expiryDate)
                 .signWith(key)
                 .compact();
+    }
+
+    public String getUsernameFromToken(String token) {
+        Claims claims = Jwts.parserBuilder()
+                .setSigningKey(key)
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+        return claims.getSubject();
     }
 }
