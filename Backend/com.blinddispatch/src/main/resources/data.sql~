@@ -1,0 +1,17 @@
+-- Insert sample users
+INSERT INTO users (active, email, password, username, verified)
+VALUES (TRUE, 'elcanbaa@proton.me', 'plaintextpassword', 'testuser', TRUE);
+
+INSERT INTO users (active, email, password, username, verified)
+VALUES (TRUE, 'anotheruser@example.com', 'plaintextpassword', 'anotheruser', TRUE);
+
+-- Insert sample verification code for user 1 (if needed)
+INSERT INTO verification_codes (code, created_at, expires_at, used, user_id)
+VALUES ('123456', CURRENT_TIMESTAMP, DATEADD('MINUTE', 10, CURRENT_TIMESTAMP), FALSE, 1);
+
+-- Insert sample messages between users
+INSERT INTO messages (content, sent_at, recipient_id, sender_id)
+VALUES ('Hello, how are you?', CURRENT_TIMESTAMP, 2, 1);
+
+INSERT INTO messages (content, sent_at, recipient_id, sender_id)
+VALUES ('I am fine, thanks!', CURRENT_TIMESTAMP, 1, 2);

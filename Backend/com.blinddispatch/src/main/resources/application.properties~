@@ -12,8 +12,6 @@ spring.h2.console.enabled=true
 spring.h2.console.path=/h2
 spring.jpa.hibernate.ddl-auto=update
 spring.jpa.show-sql=true
-spring.jpa.defer-datasource-initialization=true
-
 
 # === Mail Configuration ===
 spring.mail.host=smtp.gmail.com
