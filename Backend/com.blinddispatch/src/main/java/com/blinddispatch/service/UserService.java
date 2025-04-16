@@ -23,6 +23,12 @@ public class UserService {
     private final JavaMailSender mailSender;
 
     public void registerUser(User user) {
+        if (userRepository.findByEmail(user.getEmail()).isPresent())
+            throw new RuntimeException("Email already exists");
+
+        if (userRepository.findByUsername(user.getUsername()).isPresent())
+            throw new RuntimeException("Username already exists");
+
         user.setActive(true);
         user.setVerified(false);
         userRepository.save(user);
@@ -50,14 +56,12 @@ public class UserService {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true);
-
             helper.setTo(recipientEmail);
             helper.setSubject("Your BlindDispatch Verification Code");
             helper.setText("Your verification code is: " + code);
-
             mailSender.send(message);
         } catch (MessagingException e) {
-            throw new RuntimeException("Failed to send verification email.");
+            throw new RuntimeException("Unable to send verification email.");
         }
     }
 }
