@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
+
 import java.time.LocalDateTime;
 import java.util.Random;
 
@@ -24,12 +25,14 @@ public class UserService {
     public void registerUser(User user) {
         if (userRepository.findByEmail(user.getEmail()).isPresent())
             throw new RuntimeException("Email already exists");
+
         if (userRepository.findByUsername(user.getUsername()).isPresent())
             throw new RuntimeException("Username already exists");
-        user.setPublicId(generatePublicId());
+
         user.setActive(true);
         user.setVerified(false);
         userRepository.save(user);
+
         String code = generateVerificationCode();
         VerificationCode verificationCode = VerificationCode.builder()
                 .code(code)
@@ -38,6 +41,7 @@ public class UserService {
                 .used(false)
                 .user(user)
                 .build();
+
         codeRepository.save(verificationCode);
         sendVerificationEmail(user.getEmail(), code);
     }
@@ -46,10 +50,6 @@ public class UserService {
         Random random = new Random();
         int number = 100000 + random.nextInt(900000);
         return String.valueOf(number);
-    }
-
-    private Long generatePublicId() {
-        return -Math.abs(new Random().nextLong());
     }
 
     private void sendVerificationEmail(String recipientEmail, String code) {

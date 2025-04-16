@@ -1,8 +1,7 @@
 package com.blinddispatch.controller;
 
-import com.blinddispatch.dto.MessageRequest;
 import com.blinddispatch.dto.MessageDto;
-import com.blinddispatch.model.Message;
+import com.blinddispatch.dto.MessageRequest;
 import com.blinddispatch.service.MessageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -18,16 +17,17 @@ public class MessageController {
     private final MessageService messageService;
 
     @PostMapping("/send")
-    public ResponseEntity<Message> sendMessage(@RequestBody MessageRequest messageRequest) {
+    public ResponseEntity<MessageDto> sendMessage(@RequestBody MessageRequest messageRequest) {
         String senderUsername = SecurityContextHolder.getContext().getAuthentication().getName();
-        Message message = messageService.sendMessage(senderUsername, messageRequest);
-        return ResponseEntity.ok(message);
+        MessageDto messageDto = messageService.sendMessage(senderUsername, messageRequest);
+        return ResponseEntity.ok(messageDto);
     }
 
     @GetMapping("/conversation")
-    public ResponseEntity<List<MessageDto>> getConversation(@RequestParam("user2") String user2) {
+    public ResponseEntity<List<MessageDto>> getConversation(@RequestParam("user2") String user2,
+                                                            @RequestParam(value = "type", defaultValue = "username") String type) {
         String user1 = SecurityContextHolder.getContext().getAuthentication().getName();
-        List<MessageDto> conversation = messageService.getConversation(user1, user2);
+        List<MessageDto> conversation = messageService.getConversation(user1, user2, type);
         return ResponseEntity.ok(conversation);
     }
 }

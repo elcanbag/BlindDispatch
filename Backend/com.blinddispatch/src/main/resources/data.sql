@@ -1,13 +1,10 @@
 -- Insert sample users
-INSERT INTO users (active, email, password, username, verified)
-VALUES (TRUE, 'elcanbaa@proton.me', 'plaintextpassword', 'testuser', TRUE);
+INSERT INTO users (active, email, password, username, verified, public_id)
+VALUES (TRUE, 'elcanbaa@proton.me', 'plaintextpassword', 'testuser', TRUE, -4373628391638);
 
-INSERT INTO users (active, email, password, username, verified)
-VALUES (TRUE, 'anotheruser@example.com', 'plaintextpassword', 'anotheruser', TRUE);
+INSERT INTO users (active, email, password, username, verified, public_id)
+VALUES (TRUE, 'anotheruser@example.com', 'plaintextpassword', 'anotheruser', TRUE, -987654321);
 
-
+-- Insert sample verification code for testuser (user_id = 1)
 INSERT INTO verification_codes (code, created_at, expires_at, used, user_id)
 VALUES ('123456', CURRENT_TIMESTAMP, DATEADD('MINUTE', 10, CURRENT_TIMESTAMP), FALSE, 1);
-
-
-

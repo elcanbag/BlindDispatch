@@ -1,4 +1,0 @@
-package com.blinddispatch.repository;
-
-public class UserRepository {
-}

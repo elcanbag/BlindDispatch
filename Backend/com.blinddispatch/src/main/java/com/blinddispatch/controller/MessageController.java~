@@ -1,6 +1,7 @@
 package com.blinddispatch.controller;
 
 import com.blinddispatch.dto.MessageRequest;
+import com.blinddispatch.dto.MessageDto;
 import com.blinddispatch.model.Message;
 import com.blinddispatch.service.MessageService;
 import lombok.RequiredArgsConstructor;
@@ -24,9 +25,10 @@ public class MessageController {
     }
 
     @GetMapping("/conversation")
-    public ResponseEntity<List<Message>> getConversation(@RequestParam("user2") String user2) {
+    public ResponseEntity<List<MessageDto>> getConversation(@RequestParam("user2") String user2,
+                                                            @RequestParam(value = "type", defaultValue = "username") String type) {
         String user1 = SecurityContextHolder.getContext().getAuthentication().getName();
-        List<Message> conversation = messageService.getConversation(user1, user2);
+        List<MessageDto> conversation = messageService.getConversation(user1, user2, type);
         return ResponseEntity.ok(conversation);
     }
 }
