@@ -1,5 +1,6 @@
 package com.blinddispatch.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -10,6 +11,11 @@ import lombok.*;
 @Builder
 @Entity
 @Table(name = "users")
+@JsonIgnoreProperties({
+        "password", "email", "active", "enabled",
+        "accountNonLocked", "authorities",
+        "credentialsNonExpired", "accountNonExpired"
+})
 public class User {
 
     @Id
