@@ -23,8 +23,15 @@ public class UserController {
     }
 
     @PostMapping("/verify")
-    public ResponseEntity<String> verify(@RequestParam("code") String code) {
-        String result = authService.verifyCode(code);
+    public ResponseEntity<String> verify(@RequestParam("username") String username,
+                                         @RequestParam("code") String code) {
+        String result = authService.verifyCode(username, code);
         return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<String> login(@RequestBody LoginRequest loginRequest) {
+        String token = authService.login(loginRequest.getUsername(), loginRequest.getPassword());
+        return ResponseEntity.ok(token);
     }
 }

@@ -1,0 +1,4 @@
+package com.blinddispatch.util;
+
+public class JwtUtil {
+}
