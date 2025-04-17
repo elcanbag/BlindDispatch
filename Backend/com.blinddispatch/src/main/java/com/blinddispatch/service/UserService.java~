@@ -23,12 +23,22 @@ public class UserService {
     private final JavaMailSender mailSender;
 
     public void registerUser(User user) {
-        if (userRepository.findByEmail(user.getEmail()).isPresent())
+
+        if (user.getEmail() == null || user.getEmail().isBlank()) {
+            throw new RuntimeException("Email cannot be empty");
+        }
+        if (userRepository.findByEmail(user.getEmail()).isPresent()) {
             throw new RuntimeException("Email already exists");
+        }
 
-        if (userRepository.findByUsername(user.getUsername()).isPresent())
+        if (user.getUsername() == null || user.getUsername().isBlank()) {
+            throw new RuntimeException("Username cannot be empty");
+        }
+        if (userRepository.findByUsername(user.getUsername()).isPresent()) {
             throw new RuntimeException("Username already exists");
-
+        }
+        
+        user.setPublicId(generatePublicId());
         user.setActive(true);
         user.setVerified(false);
         userRepository.save(user);
@@ -52,13 +62,19 @@ public class UserService {
         return String.valueOf(number);
     }
 
+    private Long generatePublicId() {
+        return -Math.abs(new Random().nextLong());
+    }
+
     private void sendVerificationEmail(String recipientEmail, String code) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true);
+
             helper.setTo(recipientEmail);
             helper.setSubject("Your BlindDispatch Verification Code");
             helper.setText("Your verification code is: " + code);
+
             mailSender.send(message);
         } catch (MessagingException e) {
             throw new RuntimeException("Unable to send verification email.");

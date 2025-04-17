@@ -1,5 +1,6 @@
 package com.blinddispatch.service;
 
+import com.blinddispatch.dto.ContactDto;
 import com.blinddispatch.dto.MessageDto;
 import com.blinddispatch.dto.MessageRequest;
 import com.blinddispatch.dto.UserDto;
@@ -90,5 +91,15 @@ public class MessageService {
         dto.setContent(message.getContent());
         dto.setSentAt(message.getSentAt());
         return dto;
+    }
+
+    public List<ContactDto> getContacts(String currentUsername) {
+        User me = userRepository.findByUsername(currentUsername)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        List<User> senders = messageRepository.findDistinctSendersByRecipient(me);
+
+        return senders.stream()
+                .map(u -> new ContactDto(u.getId(), u.getUsername(), u.getPublicId()))
+                .collect(Collectors.toList());
     }
 }

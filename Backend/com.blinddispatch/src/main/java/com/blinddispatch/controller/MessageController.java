@@ -1,9 +1,11 @@
 package com.blinddispatch.controller;
 
+import com.blinddispatch.dto.ContactDto;
 import com.blinddispatch.dto.MessageDto;
 import com.blinddispatch.dto.MessageRequest;
 import com.blinddispatch.service.MessageService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
@@ -29,5 +31,11 @@ public class MessageController {
         String user1 = SecurityContextHolder.getContext().getAuthentication().getName();
         List<MessageDto> conversation = messageService.getConversation(user1, user2, type);
         return ResponseEntity.ok(conversation);
+    }
+
+    @GetMapping("/contacts")
+    public ResponseEntity<List<ContactDto>> getContacts(@AuthenticationPrincipal String username) {
+        List<ContactDto> contacts = messageService.getContacts(username);
+        return ResponseEntity.ok(contacts);
     }
 }
