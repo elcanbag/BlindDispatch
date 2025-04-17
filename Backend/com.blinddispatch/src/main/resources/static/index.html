@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BlindDispatch Client</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@^3/dist/tailwind.min.css" rel="stylesheet" />
+</head>
+<script src="https://cdn.tailwindcss.com"></script>
+<body class="bg-gray-100">
+<script>
+  const baseUrl = 'http://localhost';
+</script>
+<div id="app" class="min-h-screen flex items-center justify-center">
+  <!-- Register & Login Container -->
+  <div id="auth-container" class="w-full max-w-sm bg-white p-8 rounded-xl shadow-lg">
+    <h1 class="text-2xl font-bold text-center mb-6">BlindDispatch</h1>
+    <!-- Tabs -->
+    <div class="flex justify-around mb-6">
+      <button id="tab-login" class="px-4 py-2 text-blue-600 border-b-2 border-blue-600">Login</button>
+      <button id="tab-register" class="px-4 py-2 text-gray-600 hover:text-blue-600">Register</button>
+    </div>
+    <!-- Login Form -->
+    <form id="login-form" class="space-y-4">
+      <input id="login-username" type="text" placeholder="Username" class="w-full p-3 border rounded" />
+      <input id="login-password" type="password" placeholder="Password" class="w-full p-3 border rounded" />
+      <button type="submit" class="w-full bg-blue-600 text-white p-3 rounded">Login</button>
+    </form>
+    <!-- Register Form -->
+    <form id="register-form" class="space-y-4 hidden">
+      <input id="reg-username" type="text" placeholder="Username" class="w-full p-3 border rounded" />
+      <input id="reg-email" type="email" placeholder="Email" class="w-full p-3 border rounded" />
+      <input id="reg-password" type="password" placeholder="Password" class="w-full p-3 border rounded" />
+      <button type="submit" class="w-full bg-green-600 text-white p-3 rounded">Register</button>
+    </form>
+    <p id="auth-message" class="mt-4 text-center text-red-500"></p>
+  </div>
+  <!-- Chat View -->
+  <div id="chat-view" class="hidden w-full max-w-lg bg-white p-6 rounded-xl shadow-lg flex flex-col h-[80vh]">
+    <h2 class="text-2xl font-bold mb-4">Chat</h2>
+    <div class="flex items-center mb-4">
+      <input id="user2" type="text" placeholder="Recipient (username or public id)" class="flex-1 p-2 border rounded mr-2" />
+      <select id="type" class="p-2 border rounded">
+        <option value="username">Username</option>
+        <option value="public">Public ID</option>
+      </select>
+    </div>
+    <div id="messages" class="flex-1 overflow-auto mb-4 border p-4 rounded bg-gray-50"></div>
+    <div class="flex">
+      <input id="message-input" type="text" placeholder="Type your message..." class="flex-1 p-3 border rounded mr-2" />
+      <button id="send-btn" class="bg-green-600 text-white p-3 rounded">Send</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  let token = '';
+  const loginForm = document.getElementById('login-form');
+  const registerForm = document.getElementById('register-form');
+  const tabLogin = document.getElementById('tab-login');
+  const tabRegister = document.getElementById('tab-register');
+  const authContainer = document.getElementById('auth-container');
+  const authMessage = document.getElementById('auth-message');
+  const chatView = document.getElementById('chat-view');
+
+  // Tab switching
+  tabLogin.onclick = () => {
+    loginForm.classList.remove('hidden');
+    registerForm.classList.add('hidden');
+    tabLogin.classList.add('text-blue-600', 'border-blue-600');
+    tabRegister.classList.remove('text-blue-600', 'border-blue-600');
+  };
+  tabRegister.onclick = () => {
+    registerForm.classList.remove('hidden');
+    loginForm.classList.add('hidden');
+    tabRegister.classList.add('text-blue-600', 'border-blue-600');
+    tabLogin.classList.remove('text-blue-600', 'border-blue-600');
+  };
+
+  // Register
+  registerForm.onsubmit = async e => {
+    e.preventDefault();
+    authMessage.textContent = '';
+    const data = {
+      username: document.getElementById('reg-username').value,
+      email: document.getElementById('reg-email').value,
+      password: document.getElementById('reg-password').value
+    };
+    const res = await fetch(`${baseUrl}/auth/register`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(data)
+    });
+    authMessage.textContent = res.ok ? 'Check your email for verification code.' : 'Registration failed.';
+  };
+
+  // Login
+  loginForm.onsubmit = async e => {
+    e.preventDefault();
+    authMessage.textContent = '';
+    const data = {
+      username: document.getElementById('login-username').value,
+      password: document.getElementById('login-password').value
+    };
+    const res = await fetch(`${baseUrl}/auth/login`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(data)
+    });
+    if (res.ok) {
+      token = await res.text();
+      authContainer.classList.add('hidden');
+      chatView.classList.remove('hidden');
+      loadConversation();
+      setInterval(loadConversation, 5000);
+    } else {
+      authMessage.textContent = 'Login failed';
+    }
+  };
+
+  // Send
+  document.getElementById('send-btn').onclick = async () => {
+    const recipient = document.getElementById('user2').value;
+    const type = document.getElementById('type').value;
+    const content = document.getElementById('message-input').value;
+    const body = type === 'public'
+            ? {recipientPublicId: parseInt(recipient), content}
+            : {recipientUsername: recipient, content};
+    await fetch(`${baseUrl}/messages/send`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      body: JSON.stringify(body)
+    });
+    document.getElementById('message-input').value = '';
+    loadConversation();
+  };
+
+  // Load messages
+  async function loadConversation() {
+    const recipient = document.getElementById('user2').value;
+    const type = document.getElementById('type').value;
+    const url = `${baseUrl}/messages/conversation?user2=${encodeURIComponent(recipient)}&type=${type}`;
+    const res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
+    const messages = res.ok ? await res.json() : [];
+    const container = document.getElementById('messages');
+    container.innerHTML = '';
+    messages.forEach(msg => {
+      const div = document.createElement('div');
+      div.classList.add('mb-2', 'p-2', 'rounded', 'bg-white', 'shadow-sm');
+      div.innerHTML = `<strong>${msg.sender.username || msg.sender.publicId}</strong>: ${msg.content}`;
+      container.appendChild(div);
+    });
+    container.scrollTop = container.scrollHeight;
+  }
+</script>
+</body>
+</html>
