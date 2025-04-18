@@ -4,12 +4,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>BlindDispatch Client</title>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@^3/dist/tailwind.min.css" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<script src="https://cdn.tailwindcss.com"></script>
 <body class="bg-gray-100">
 <script>
-  const baseUrl = 'http://localhost';
+  const baseUrl = 'http://localhost:80';
 </script>
 <div id="app" class="min-h-screen flex items-center justify-center">
   <!-- Register & Login Container -->
@@ -22,22 +21,38 @@
     </div>
     <!-- Login Form -->
     <form id="login-form" class="space-y-4">
-      <input id="login-username" type="text" placeholder="Username" class="w-full p-3 border rounded" />
-      <input id="login-password" type="password" placeholder="Password" class="w-full p-3 border rounded" />
+      <input id="login-username" type="text" placeholder="Username" class="w-full p-3 border rounded" required />
+      <input id="login-password" type="password" placeholder="Password" class="w-full p-3 border rounded" required />
+      <div class="flex items-center">
+        <input id="remember-me" type="checkbox" class="mr-2" />
+        <label for="remember-me" class="text-sm">Remember me</label>
+      </div>
       <button type="submit" class="w-full bg-blue-600 text-white p-3 rounded">Login</button>
     </form>
     <!-- Register Form -->
     <form id="register-form" class="space-y-4 hidden">
-      <input id="reg-username" type="text" placeholder="Username" class="w-full p-3 border rounded" />
-      <input id="reg-email" type="email" placeholder="Email" class="w-full p-3 border rounded" />
-      <input id="reg-password" type="password" placeholder="Password" class="w-full p-3 border rounded" />
+      <input id="reg-username" type="text" placeholder="Username" class="w-full p-3 border rounded" required />
+      <input id="reg-email" type="email" placeholder="Email" class="w-full p-3 border rounded" required />
+      <input id="reg-password" type="password" placeholder="Password" class="w-full p-3 border rounded" required />
       <button type="submit" class="w-full bg-green-600 text-white p-3 rounded">Register</button>
     </form>
     <p id="auth-message" class="mt-4 text-center text-red-500"></p>
   </div>
+
   <!-- Chat View -->
   <div id="chat-view" class="hidden w-full max-w-lg bg-white p-6 rounded-xl shadow-lg flex flex-col h-[80vh]">
+    <!-- Header with Username and Logout -->
+    <div class="flex justify-between items-center mb-4">
+      <span id="user-display" class="font-medium"></span>
+      <button id="logout-btn" class="text-red-500 hover:underline">Logout</button>
+    </div>
     <h2 class="text-2xl font-bold mb-4">Chat</h2>
+    <!-- Contacts List -->
+    <div id="contacts" class="mb-4">
+      <h3 class="font-semibold mb-2">Contacts</h3>
+      <ul id="contacts-list" class="border rounded overflow-auto h-32 bg-white"></ul>
+    </div>
+    <!-- Manual Recipient Entry -->
     <div class="flex items-center mb-4">
       <input id="user2" type="text" placeholder="Recipient (username or public id)" class="flex-1 p-2 border rounded mr-2" />
       <select id="type" class="p-2 border rounded">
@@ -45,7 +60,9 @@
         <option value="public">Public ID</option>
       </select>
     </div>
+    <!-- Messages Container -->
     <div id="messages" class="flex-1 overflow-auto mb-4 border p-4 rounded bg-gray-50"></div>
+    <!-- Message Input -->
     <div class="flex">
       <input id="message-input" type="text" placeholder="Type your message..." class="flex-1 p-3 border rounded mr-2" />
       <button id="send-btn" class="bg-green-600 text-white p-3 rounded">Send</button>
@@ -54,7 +71,16 @@
 </div>
 
 <script>
-  let token = '';
+  let token = localStorage.getItem('bd_token') || '';
+  let username = localStorage.getItem('bd_username') || '';
+
+  // On load: if token exists, auto-show chat
+  window.onload = () => {
+    if (token && username) {
+      showChat();
+    }
+  };  
+
   const loginForm = document.getElementById('login-form');
   const registerForm = document.getElementById('register-form');
   const tabLogin = document.getElementById('tab-login');
@@ -62,98 +88,123 @@
   const authContainer = document.getElementById('auth-container');
   const authMessage = document.getElementById('auth-message');
   const chatView = document.getElementById('chat-view');
+  const userDisplay = document.getElementById('user-display');
 
   // Tab switching
   tabLogin.onclick = () => {
     loginForm.classList.remove('hidden');
     registerForm.classList.add('hidden');
-    tabLogin.classList.add('text-blue-600', 'border-blue-600');
-    tabRegister.classList.remove('text-blue-600', 'border-blue-600');
+    tabLogin.classList.add('text-blue-600','border-blue-600');
+    tabRegister.classList.remove('text-blue-600','border-blue-600');
+    authMessage.textContent = '';
   };
   tabRegister.onclick = () => {
     registerForm.classList.remove('hidden');
     loginForm.classList.add('hidden');
-    tabRegister.classList.add('text-blue-600', 'border-blue-600');
-    tabLogin.classList.remove('text-blue-600', 'border-blue-600');
+    tabRegister.classList.add('text-blue-600','border-blue-600');
+    tabLogin.classList.remove('text-blue-600','border-blue-600');
+    authMessage.textContent = '';
   };
 
-  // Register
+  // Register with auto-fill login
   registerForm.onsubmit = async e => {
     e.preventDefault();
     authMessage.textContent = '';
-    const data = {
-      username: document.getElementById('reg-username').value,
-      email: document.getElementById('reg-email').value,
-      password: document.getElementById('reg-password').value
-    };
-    const res = await fetch(`${baseUrl}/auth/register`, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify(data)
-    });
-    authMessage.textContent = res.ok ? 'Check your email for verification code.' : 'Registration failed.';
+    const u = document.getElementById('reg-username').value;
+    const p = document.getElementById('reg-password').value;
+    const data = { username: u, email: document.getElementById('reg-email').value, password: p };
+    const res = await fetch(`${baseUrl}/auth/register`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data)});
+    if(res.ok) {
+      authMessage.textContent = 'Registration successful! Please log in.';
+      // pre-fill login
+      document.getElementById('login-username').value = u;
+      document.getElementById('login-password').value = p;
+      tabLogin.onclick();
+    } else authMessage.textContent = 'Registration failed.';
   };
 
-  // Login
+  // Login with Remember Me
   loginForm.onsubmit = async e => {
     e.preventDefault();
     authMessage.textContent = '';
-    const data = {
-      username: document.getElementById('login-username').value,
-      password: document.getElementById('login-password').value
-    };
-    const res = await fetch(`${baseUrl}/auth/login`, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify(data)
-    });
-    if (res.ok) {
+    const u = document.getElementById('login-username').value;
+    const p = document.getElementById('login-password').value;
+    const remember = document.getElementById('remember-me').checked;
+    const res = await fetch(`${baseUrl}/auth/login`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username: u, password: p})});
+    if(res.ok) {
       token = await res.text();
-      authContainer.classList.add('hidden');
-      chatView.classList.remove('hidden');
-      loadConversation();
-      setInterval(loadConversation, 5000);
-    } else {
-      authMessage.textContent = 'Login failed';
-    }
+      username = u;
+      if(remember) {
+        localStorage.setItem('bd_username', u);
+        localStorage.setItem('bd_token', token);
+      } else {
+        localStorage.removeItem('bd_username');
+        localStorage.removeItem('bd_token');
+      }
+      showChat();
+    } else authMessage.textContent='Login failed';
   };
 
-  // Send
-  document.getElementById('send-btn').onclick = async () => {
-    const recipient = document.getElementById('user2').value;
-    const type = document.getElementById('type').value;
-    const content = document.getElementById('message-input').value;
-    const body = type === 'public'
-            ? {recipientPublicId: parseInt(recipient), content}
-            : {recipientUsername: recipient, content};
-    await fetch(`${baseUrl}/messages/send`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + token
-      },
-      body: JSON.stringify(body)
+  // Show chat view and start polling
+  function showChat() {
+    authContainer.classList.add('hidden');
+    chatView.classList.remove('hidden');
+    userDisplay.textContent = username;
+    loadContacts(); loadConversation();
+    setInterval(loadConversation, 5000);
+    setInterval(loadContacts, 10000);
+  }
+
+  // Logout clears storage and reloads
+  document.getElementById('logout-btn').onclick = () => {
+    localStorage.removeItem('bd_token');
+    localStorage.removeItem('bd_username');
+    location.reload();
+  };
+
+  // Contacts list API
+  async function loadContacts() {
+    const res = await fetch(`${baseUrl}/messages/contacts`, { headers:{'Authorization':'Bearer '+token}});
+    const contacts = res.ok?await res.json():[];
+    const list = document.getElementById('contacts-list'); list.innerHTML = '';
+    contacts.forEach(c => {
+      const li = document.createElement('li');
+      li.classList.add('p-2','border-b','cursor-pointer','hover:bg-gray-200');
+      li.textContent = c.username || c.publicId;
+      li.onclick = () => {
+        document.getElementById('type').value = c.username?'username':'public';
+        document.getElementById('user2').value = c.username||c.publicId;
+        loadConversation();
+      };
+      list.appendChild(li);
     });
+  }
+
+  // Send message API
+  document.getElementById('send-btn').onclick = async () => {
+    const r = document.getElementById('user2').value;
+    const t = document.getElementById('type').value;
+    const content = document.getElementById('message-input').value;
+    const body = t==='public'?{recipientPublicId:parseInt(r),content}:{recipientUsername:r,content};
+    await fetch(`${baseUrl}/messages/send`, { method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token}, body:JSON.stringify(body)});
     document.getElementById('message-input').value = '';
     loadConversation();
   };
 
-  // Load messages
+  // Conversation API
   async function loadConversation() {
-    const recipient = document.getElementById('user2').value;
-    const type = document.getElementById('type').value;
-    const url = `${baseUrl}/messages/conversation?user2=${encodeURIComponent(recipient)}&type=${type}`;
-    const res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
-    const messages = res.ok ? await res.json() : [];
-    const container = document.getElementById('messages');
-    container.innerHTML = '';
-    messages.forEach(msg => {
-      const div = document.createElement('div');
-      div.classList.add('mb-2', 'p-2', 'rounded', 'bg-white', 'shadow-sm');
-      div.innerHTML = `<strong>${msg.sender.username || msg.sender.publicId}</strong>: ${msg.content}`;
-      container.appendChild(div);
+    const r = document.getElementById('user2').value;
+    const t = document.getElementById('type').value;
+    const res = await fetch(`${baseUrl}/messages/conversation?user2=${encodeURIComponent(r)}&type=${t}`, { headers:{'Authorization':'Bearer '+token}});
+    const msgs = res.ok?await res.json():[];
+    const c = document.getElementById('messages'); c.innerHTML = '';
+    msgs.forEach(m => {
+      const d = document.createElement('div');
+      d.classList.add('mb-2','p-2','rounded','bg-white','shadow-sm');
+      d.innerHTML = `<strong>${m.sender.username||m.sender.publicId}</strong>: ${m.content}`;
+      c.appendChild(d);
     });
-    container.scrollTop = container.scrollHeight;
+    c.scrollTop = c.scrollHeight;
   }
 </script>
 </body>
