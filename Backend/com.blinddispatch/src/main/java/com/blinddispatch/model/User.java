@@ -11,7 +11,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 @Builder
 @Entity
 @Table(name = "users")
-@JsonIgnoreProperties({"password", "active", "enabled", "accountNonLocked", "authorities", "credentialsNonExpired", "accountNonExpired"})
+@JsonIgnoreProperties({"password", "active", "enabled", "accountNonLocked", "authorities", "credentialsNonExpired"})
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
