@@ -10,4 +10,5 @@ public class MessageDto {
     private UserDto recipient;
     private String content;
     private LocalDateTime sentAt;
+    private boolean read;
 }

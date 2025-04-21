@@ -38,4 +38,12 @@ public class MessageController {
         List<ContactDto> contacts = messageService.getContacts(username);
         return ResponseEntity.ok(contacts);
     }
+
+    @PatchMapping("/mark-read/{id}")
+    public ResponseEntity<Void> markAsRead(@PathVariable Long id) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        messageService.markMessageAsRead(id, username);
+        return ResponseEntity.ok().build();
+    }
+
 }

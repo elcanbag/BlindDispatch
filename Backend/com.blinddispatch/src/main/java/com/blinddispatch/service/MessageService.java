@@ -39,6 +39,7 @@ public class MessageService {
                 .recipient(recipient)
                 .content(messageRequest.getContent())
                 .sentAt(LocalDateTime.now())
+                .read(false)
                 .build();
         Message savedMessage = messageRepository.save(message);
         return mapToDto(savedMessage, hideRecipientUsername);
@@ -90,6 +91,7 @@ public class MessageService {
         dto.setRecipient(recipientDto);
         dto.setContent(message.getContent());
         dto.setSentAt(message.getSentAt());
+        dto.setRead(message.isRead());
         return dto;
     }
 
@@ -101,5 +103,15 @@ public class MessageService {
         return senders.stream()
                 .map(u -> new ContactDto(u.getId(), u.getUsername(), u.getPublicId()))
                 .collect(Collectors.toList());
+    }
+
+    public void markMessageAsRead(Long messageId, String username) {
+        Message message = messageRepository.findById(messageId)
+                .orElseThrow(() -> new RuntimeException("Message not found"));
+        if (!message.getRecipient().getUsername().equals(username)) {
+            throw new RuntimeException("Unauthorized");
+        }
+        message.setRead(true);
+        messageRepository.save(message);
     }
 }
