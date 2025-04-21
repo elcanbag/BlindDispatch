@@ -11,7 +11,9 @@ import com.blinddispatch.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -98,12 +100,20 @@ public class MessageService {
     public List<ContactDto> getContacts(String currentUsername) {
         User me = userRepository.findByUsername(currentUsername)
                 .orElseThrow(() -> new RuntimeException("User not found"));
-        List<User> senders = messageRepository.findDistinctSendersByRecipient(me);
 
-        return senders.stream()
+        List<User> senders = messageRepository.findDistinctSendersByRecipient(me);
+        List<User> recipients = messageRepository.findDistinctRecipientsBySender(me);
+
+
+        Set<User> uniqueContacts = new HashSet<>();
+        uniqueContacts.addAll(senders);
+        uniqueContacts.addAll(recipients);
+
+        return uniqueContacts.stream()
                 .map(u -> new ContactDto(u.getId(), u.getUsername(), u.getPublicId()))
                 .collect(Collectors.toList());
     }
+
 
     public void markMessageAsRead(Long messageId, String username) {
         Message message = messageRepository.findById(messageId)
