@@ -198,20 +198,49 @@
   const r = document.getElementById('user2').value.trim();
   const t = document.getElementById('type').value;
   if (!r) return;
+
   const res = await fetch(`${baseUrl}/messages/conversation?user2=${encodeURIComponent(r)}&type=${t}`, {
     headers: { 'Authorization': 'Bearer ' + token }
   });
+
   const msgs = res.ok ? await res.json() : [];
-  const c = document.getElementById('messages'); 
+  const c = document.getElementById('messages');
   c.innerHTML = '';
+
+  const patchPromises = [];
+
   msgs.forEach(m => {
     const d = document.createElement('div');
     d.classList.add('mb-2', 'p-2', 'rounded', 'bg-white', 'shadow-sm');
-    d.innerHTML = `<strong>${m.sender.username || m.sender.publicId}</strong>: ${m.content}`;
+    const isMe = m.sender.username === username;
+
+    let tick = '';
+    if (isMe) {
+      tick = m.read ? ' <span class="text-blue-500">✅✅</span>' : ' <span class="text-gray-500">✅</span>';
+    }
+
+    d.innerHTML = `<strong>${m.sender.username || m.sender.publicId}</strong>: ${m.content}${tick}`;
     c.appendChild(d);
+
+    if (!isMe && !m.read) {
+      patchPromises.push(
+        fetch(`${baseUrl}/messages/mark-read/${m.id}`, {
+          method: 'PATCH',
+          headers: { 'Authorization': 'Bearer ' + token }
+        })
+      );
+    }
   });
+
+
+  if (patchPromises.length > 0) {
+    await Promise.all(patchPromises);
+  }
+
   c.scrollTop = c.scrollHeight;
 }
+
+
 
 </script>
 </body>
