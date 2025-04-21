@@ -147,13 +147,15 @@
 
   // Show chat view and start polling
   function showChat() {
-    authContainer.classList.add('hidden');
-    chatView.classList.remove('hidden');
-    userDisplay.textContent = username;
-    loadContacts(); loadConversation();
-    setInterval(loadConversation, 5000);
-    setInterval(loadContacts, 10000);
-  }
+  authContainer.classList.add('hidden');
+  chatView.classList.remove('hidden');
+  userDisplay.textContent = username;
+  loadContacts();
+  loadConversation();
+  setInterval(loadConversation, 5000);
+  setInterval(loadContacts, 7000);
+}
+
 
   // Logout clears storage and reloads
   document.getElementById('logout-btn').onclick = () => {
@@ -193,19 +195,24 @@
 
   // Conversation API
   async function loadConversation() {
-    const r = document.getElementById('user2').value;
-    const t = document.getElementById('type').value;
-    const res = await fetch(`${baseUrl}/messages/conversation?user2=${encodeURIComponent(r)}&type=${t}`, { headers:{'Authorization':'Bearer '+token}});
-    const msgs = res.ok?await res.json():[];
-    const c = document.getElementById('messages'); c.innerHTML = '';
-    msgs.forEach(m => {
-      const d = document.createElement('div');
-      d.classList.add('mb-2','p-2','rounded','bg-white','shadow-sm');
-      d.innerHTML = `<strong>${m.sender.username||m.sender.publicId}</strong>: ${m.content}`;
-      c.appendChild(d);
-    });
-    c.scrollTop = c.scrollHeight;
-  }
+  const r = document.getElementById('user2').value.trim();
+  const t = document.getElementById('type').value;
+  if (!r) return;
+  const res = await fetch(`${baseUrl}/messages/conversation?user2=${encodeURIComponent(r)}&type=${t}`, {
+    headers: { 'Authorization': 'Bearer ' + token }
+  });
+  const msgs = res.ok ? await res.json() : [];
+  const c = document.getElementById('messages'); 
+  c.innerHTML = '';
+  msgs.forEach(m => {
+    const d = document.createElement('div');
+    d.classList.add('mb-2', 'p-2', 'rounded', 'bg-white', 'shadow-sm');
+    d.innerHTML = `<strong>${m.sender.username || m.sender.publicId}</strong>: ${m.content}`;
+    c.appendChild(d);
+  });
+  c.scrollTop = c.scrollHeight;
+}
+
 </script>
 </body>
 </html>
