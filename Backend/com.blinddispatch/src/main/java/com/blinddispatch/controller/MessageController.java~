@@ -1,7 +1,6 @@
 package com.blinddispatch.controller;
 
 import com.blinddispatch.dto.ContactDto;
-import com.blinddispatch.dto.InboxItemDto;
 import com.blinddispatch.dto.MessageDto;
 import com.blinddispatch.dto.MessageRequest;
 import com.blinddispatch.service.MessageService;
@@ -54,13 +53,6 @@ public class MessageController {
         String user1 = SecurityContextHolder.getContext().getAuthentication().getName();
         List<MessageDto> results = messageService.searchMessages(user1, user2, type, query);
         return ResponseEntity.ok(results);
-    }
-
-    @GetMapping("/inbox")
-    public ResponseEntity<List<InboxItemDto>> getInbox() {
-        String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        List<InboxItemDto> inbox = messageService.getInbox(username);
-        return ResponseEntity.ok(inbox);
     }
 
 }

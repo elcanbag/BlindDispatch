@@ -30,12 +30,4 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
                                              @Param("user2") User user2,
                                              @Param("keyword") String keyword);
 
-
-    @Query("""
-    SELECT m FROM Message m 
-    WHERE m.sender = :user OR m.recipient = :user 
-    ORDER BY m.sentAt DESC
-""")
-    List<Message> findAllMessagesInvolvingUser(@Param("user") User user);
-
 }

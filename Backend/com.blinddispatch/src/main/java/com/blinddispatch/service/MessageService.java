@@ -1,9 +1,6 @@
 package com.blinddispatch.service;
 
-import com.blinddispatch.dto.ContactDto;
-import com.blinddispatch.dto.MessageDto;
-import com.blinddispatch.dto.MessageRequest;
-import com.blinddispatch.dto.UserDto;
+import com.blinddispatch.dto.*;
 import com.blinddispatch.model.Message;
 import com.blinddispatch.model.User;
 import com.blinddispatch.repository.MessageRepository;
@@ -11,9 +8,7 @@ import com.blinddispatch.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -147,6 +142,28 @@ public class MessageService {
         return messages.stream()
                 .map(m -> mapToDto(m, "public".equalsIgnoreCase(type)))
                 .collect(Collectors.toList());
+    }
+
+    public List<InboxItemDto> getInbox(String username) {
+        User me = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        List<Message> messages = messageRepository.findAllMessagesInvolvingUser(me);
+
+        Map<Long, InboxItemDto> map = new LinkedHashMap<>();
+        for (Message m : messages) {
+            User other = m.getSender().equals(me) ? m.getRecipient() : m.getSender();
+            if (!map.containsKey(other.getId())) {
+                map.put(other.getId(), new InboxItemDto(
+                        other.getId(),
+                        other.getUsername(),
+                        other.getPublicId(),
+                        m.getSentAt()
+                ));
+            }
+        }
+
+        return new ArrayList<>(map.values());
     }
 
 }
