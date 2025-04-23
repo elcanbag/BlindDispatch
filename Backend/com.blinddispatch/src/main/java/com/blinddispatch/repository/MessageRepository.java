@@ -20,4 +20,14 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
     @Query("SELECT DISTINCT m.recipient FROM Message m WHERE m.sender = :sender")
     List<User> findDistinctRecipientsBySender(@Param("sender") User sender);
 
+    @Query("""
+    SELECT m FROM Message m
+    WHERE 
+        ((m.sender = :user1 AND m.recipient = :user2) OR (m.sender = :user2 AND m.recipient = :user1))
+        AND LOWER(m.content) LIKE LOWER(CONCAT('%', :keyword, '%'))
+""")
+    List<Message> searchMessagesBetweenUsers(@Param("user1") User user1,
+                                             @Param("user2") User user2,
+                                             @Param("keyword") String keyword);
+
 }

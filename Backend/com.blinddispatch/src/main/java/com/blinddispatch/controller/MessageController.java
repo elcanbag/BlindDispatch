@@ -46,4 +46,13 @@ public class MessageController {
         return ResponseEntity.ok().build();
     }
 
+    @GetMapping("/search")
+    public ResponseEntity<List<MessageDto>> searchMessages(@RequestParam("user2") String user2,
+                                                           @RequestParam("query") String query,
+                                                           @RequestParam(value = "type", defaultValue = "username") String type) {
+        String user1 = SecurityContextHolder.getContext().getAuthentication().getName();
+        List<MessageDto> results = messageService.searchMessages(user1, user2, type, query);
+        return ResponseEntity.ok(results);
+    }
+
 }
