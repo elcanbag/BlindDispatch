@@ -1,4 +1,0 @@
-package com.blinddispatch.exception;
-
-public class GlobalExceptionHandler {
-}
