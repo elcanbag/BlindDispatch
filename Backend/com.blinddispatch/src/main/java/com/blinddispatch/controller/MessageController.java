@@ -63,4 +63,12 @@ public class MessageController {
         return ResponseEntity.ok(inbox);
     }
 
+    @PatchMapping("/delete/{id}")
+    public ResponseEntity<Void> deleteMessage(@PathVariable Long id,
+                                              @RequestParam("type") String type) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        messageService.deleteMessage(id, username, type);
+        return ResponseEntity.ok().build();
+    }
+
 }

@@ -32,4 +32,12 @@ public class Message {
     @Column(nullable = false)
     private boolean read;
 
+    @Column(nullable = false)
+    private boolean deletedBySender = false;
+
+    @Column(nullable = false)
+    private boolean deletedByRecipient = false;
+
+    @Column(nullable = false)
+    private boolean deletedCompletely = false;
 }

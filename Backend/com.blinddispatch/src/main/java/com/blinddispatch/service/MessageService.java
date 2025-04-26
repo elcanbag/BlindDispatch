@@ -166,4 +166,43 @@ public class MessageService {
         return new ArrayList<>(map.values());
     }
 
+    public void deleteMessage(Long messageId, String username, String type) {
+        Message message = messageRepository.findById(messageId)
+                .orElseThrow(() -> new RuntimeException("Message not found"));
+
+        boolean isSender = message.getSender().getUsername().equals(username);
+        boolean isRecipient = message.getRecipient().getUsername().equals(username);
+
+        if (!isSender && !isRecipient) {
+            throw new RuntimeException("Unauthorized");
+        }
+
+        if ("double".equalsIgnoreCase(type)) {
+            if (!isSender) {
+                throw new RuntimeException("Only sender can delete for both sides");
+            }
+            LocalDateTime now = LocalDateTime.now();
+            if (message.getSentAt().plusMinutes(2).isBefore(now)) {
+                throw new RuntimeException("Too late to delete for both sides");
+            }
+            message.setContent("This message deleted by USER");
+            message.setDeletedBySender(true);
+            message.setDeletedByRecipient(true);
+            messageRepository.save(message);
+        } else if ("one".equalsIgnoreCase(type)) {
+            if (isSender) {
+                message.setDeletedBySender(true);
+            } else if (isRecipient) {
+                message.setDeletedByRecipient(true);
+            }
+            if (message.isDeletedBySender() && message.isDeletedByRecipient()) {
+                messageRepository.delete(message);
+            } else {
+                messageRepository.save(message);
+            }
+        } else {
+            throw new RuntimeException("Invalid delete type");
+        }
+    }
+
 }
