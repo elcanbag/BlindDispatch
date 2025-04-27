@@ -59,9 +59,17 @@ public class MessageService {
                     .orElseThrow(() -> new RuntimeException("User not found"));
         }
         List<Message> messages = messageRepository.findBySenderAndRecipientOrSenderAndRecipient(u1, u2, u2, u1);
-        return messages.stream().map(message -> mapToDto(message, "public".equalsIgnoreCase(identifierType)))
+
+        return messages.stream()
+                .filter(m -> {
+                    if (m.getSender().equals(u1) && m.isDeletedBySender()) return false;
+                    if (m.getRecipient().equals(u1) && m.isDeletedByRecipient()) return false;
+                    return true;
+                })
+                .map(message -> mapToDto(message, "public".equalsIgnoreCase(identifierType)))
                 .collect(Collectors.toList());
     }
+
 
     private MessageDto mapToDto(Message message, boolean hideRecipientUsername) {
         UserDto senderDto = new UserDto();
@@ -139,10 +147,17 @@ public class MessageService {
         }
 
         List<Message> messages = messageRepository.searchMessagesBetweenUsers(user1, user2, keyword);
+
         return messages.stream()
+                .filter(m -> {
+                    if (m.getSender().equals(user1) && m.isDeletedBySender()) return false;
+                    if (m.getRecipient().equals(user1) && m.isDeletedByRecipient()) return false;
+                    return true;
+                })
                 .map(m -> mapToDto(m, "public".equalsIgnoreCase(type)))
                 .collect(Collectors.toList());
     }
+
 
     public List<InboxItemDto> getInbox(String username) {
         User me = userRepository.findByUsername(username)
@@ -152,6 +167,10 @@ public class MessageService {
 
         Map<Long, InboxItemDto> map = new LinkedHashMap<>();
         for (Message m : messages) {
+            boolean senderDeleted = m.getSender().equals(me) && m.isDeletedBySender();
+            boolean recipientDeleted = m.getRecipient().equals(me) && m.isDeletedByRecipient();
+            if (senderDeleted || recipientDeleted) continue;
+
             User other = m.getSender().equals(me) ? m.getRecipient() : m.getSender();
             if (!map.containsKey(other.getId())) {
                 map.put(other.getId(), new InboxItemDto(
@@ -165,6 +184,7 @@ public class MessageService {
 
         return new ArrayList<>(map.values());
     }
+
 
     public void deleteMessage(Long messageId, String username, String type) {
         Message message = messageRepository.findById(messageId)
