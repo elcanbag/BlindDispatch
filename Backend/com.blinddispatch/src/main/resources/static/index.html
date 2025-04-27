@@ -11,15 +11,12 @@
   const baseUrl = 'http://localhost:80';
 </script>
 <div id="app" class="min-h-screen flex items-center justify-center">
-  <!-- Register & Login Container -->
   <div id="auth-container" class="w-full max-w-sm bg-white p-8 rounded-xl shadow-lg">
     <h1 class="text-2xl font-bold text-center mb-6">BlindDispatch</h1>
-    <!-- Tabs -->
     <div class="flex justify-around mb-6">
       <button id="tab-login" class="px-4 py-2 text-blue-600 border-b-2 border-blue-600">Login</button>
       <button id="tab-register" class="px-4 py-2 text-gray-600 hover:text-blue-600">Register</button>
     </div>
-    <!-- Login Form -->
     <form id="login-form" class="space-y-4">
       <input id="login-username" type="text" placeholder="Username" class="w-full p-3 border rounded" required />
       <input id="login-password" type="password" placeholder="Password" class="w-full p-3 border rounded" required />
@@ -29,7 +26,6 @@
       </div>
       <button type="submit" class="w-full bg-blue-600 text-white p-3 rounded">Login</button>
     </form>
-    <!-- Register Form -->
     <form id="register-form" class="space-y-4 hidden">
       <input id="reg-username" type="text" placeholder="Username" class="w-full p-3 border rounded" required />
       <input id="reg-email" type="email" placeholder="Email" class="w-full p-3 border rounded" required />
@@ -39,20 +35,17 @@
     <p id="auth-message" class="mt-4 text-center text-red-500"></p>
   </div>
 
-  <!-- Chat View -->
   <div id="chat-view" class="hidden w-full max-w-lg bg-white p-6 rounded-xl shadow-lg flex flex-col h-[80vh]">
-    <!-- Header with Username and Logout -->
     <div class="flex justify-between items-center mb-4">
       <span id="user-display" class="font-medium"></span>
       <button id="logout-btn" class="text-red-500 hover:underline">Logout</button>
     </div>
     <h2 class="text-2xl font-bold mb-4">Chat</h2>
-    <!-- Contacts List -->
-    <div id="contacts" class="mb-4">
-      <h3 class="font-semibold mb-2">Contacts</h3>
-      <ul id="contacts-list" class="border rounded overflow-auto h-32 bg-white"></ul>
+    <div class="flex space-x-2 mb-4">
+      <button id="btn-inbox" class="px-3 py-1 bg-blue-600 text-white rounded">Inbox</button>
+      <button id="btn-contacts" class="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded">Contacts</button>
     </div>
-    <!-- Manual Recipient Entry -->
+    <ul id="sidebar-list" class="border rounded overflow-auto h-32 bg-white mb-4"></ul>
     <div class="flex items-center mb-4">
       <input id="user2" type="text" placeholder="Recipient (username or public id)" class="flex-1 p-2 border rounded mr-2" />
       <select id="type" class="p-2 border rounded">
@@ -60,9 +53,7 @@
         <option value="public">Public ID</option>
       </select>
     </div>
-    <!-- Messages Container -->
     <div id="messages" class="flex-1 overflow-auto mb-4 border p-4 rounded bg-gray-50"></div>
-    <!-- Message Input -->
     <div class="flex">
       <input id="message-input" type="text" placeholder="Type your message..." class="flex-1 p-3 border rounded mr-2" />
       <button id="send-btn" class="bg-green-600 text-white p-3 rounded">Send</button>
@@ -70,178 +61,236 @@
   </div>
 </div>
 
+<!-- Silme Modal -->
+<div id="delete-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center">
+  <div class="bg-white rounded-lg p-6 w-80">
+    <p class="mb-4 text-center">Mesajı nasıl silmek istiyorsun?</p>
+    <div class="flex justify-around">
+      <button id="delete-one" class="px-4 py-2 bg-red-500 text-white rounded">Tek taraflı</button>
+      <button id="delete-double" class="px-4 py-2 bg-red-500 text-white rounded">İki taraflı</button>
+    </div>
+  </div>
+</div>
+
 <script>
-  let token = localStorage.getItem('bd_token') || '';
-  let username = localStorage.getItem('bd_username') || '';
+  let token = localStorage.getItem('bd_token') || ''
+  let username = localStorage.getItem('bd_username') || ''
 
-  // On load: if token exists, auto-show chat
   window.onload = () => {
-    if (token && username) {
-      showChat();
-    }
-  };  
+    if (token && username) showChat()
+  }
 
-  const loginForm = document.getElementById('login-form');
-  const registerForm = document.getElementById('register-form');
-  const tabLogin = document.getElementById('tab-login');
-  const tabRegister = document.getElementById('tab-register');
-  const authContainer = document.getElementById('auth-container');
-  const authMessage = document.getElementById('auth-message');
-  const chatView = document.getElementById('chat-view');
-  const userDisplay = document.getElementById('user-display');
+  const loginForm = document.getElementById('login-form')
+  const registerForm = document.getElementById('register-form')
+  const tabLogin = document.getElementById('tab-login')
+  const tabRegister = document.getElementById('tab-register')
+  const authMessage = document.getElementById('auth-message')
+  const chatView = document.getElementById('chat-view')
+  const userDisplay = document.getElementById('user-display')
+  const btnInbox = document.getElementById('btn-inbox')
+  const btnContacts = document.getElementById('btn-contacts')
+  const sidebarList = document.getElementById('sidebar-list')
+  let pendingDeleteId = null
 
-  // Tab switching
   tabLogin.onclick = () => {
-    loginForm.classList.remove('hidden');
-    registerForm.classList.add('hidden');
-    tabLogin.classList.add('text-blue-600','border-blue-600');
-    tabRegister.classList.remove('text-blue-600','border-blue-600');
-    authMessage.textContent = '';
-  };
+    loginForm.classList.remove('hidden')
+    registerForm.classList.add('hidden')
+    tabLogin.classList.add('text-blue-600','border-blue-600')
+    tabRegister.classList.remove('text-blue-600','border-blue-600')
+    authMessage.textContent = ''
+  }
   tabRegister.onclick = () => {
-    registerForm.classList.remove('hidden');
-    loginForm.classList.add('hidden');
-    tabRegister.classList.add('text-blue-600','border-blue-600');
-    tabLogin.classList.remove('text-blue-600','border-blue-600');
-    authMessage.textContent = '';
-  };
+    registerForm.classList.remove('hidden')
+    loginForm.classList.add('hidden')
+    tabRegister.classList.add('text-blue-600','border-blue-600')
+    tabLogin.classList.remove('text-blue-600','border-blue-600')
+    authMessage.textContent = ''
+  }
 
-  // Register with auto-fill login
   registerForm.onsubmit = async e => {
-    e.preventDefault();
-    authMessage.textContent = '';
-    const u = document.getElementById('reg-username').value;
-    const p = document.getElementById('reg-password').value;
-    const data = { username: u, email: document.getElementById('reg-email').value, password: p };
-    const res = await fetch(`${baseUrl}/auth/register`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data)});
+    e.preventDefault()
+    authMessage.textContent = ''
+    const u = document.getElementById('reg-username').value
+    const p = document.getElementById('reg-password').value
+    const data = { username: u, email: document.getElementById('reg-email').value, password: p }
+    const res = await fetch(`${baseUrl}/auth/register`, {
+      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data)
+    })
     if(res.ok) {
-      authMessage.textContent = 'Registration successful! Please log in.';
-      // pre-fill login
-      document.getElementById('login-username').value = u;
-      document.getElementById('login-password').value = p;
-      tabLogin.onclick();
-    } else authMessage.textContent = 'Registration failed.';
-  };
+      authMessage.textContent = 'Registration successful! Please log in.'
+      document.getElementById('login-username').value = u
+      document.getElementById('login-password').value = p
+      tabLogin.onclick()
+    } else authMessage.textContent = 'Registration failed.'
+  }
 
-  // Login with Remember Me
   loginForm.onsubmit = async e => {
-    e.preventDefault();
-    authMessage.textContent = '';
-    const u = document.getElementById('login-username').value;
-    const p = document.getElementById('login-password').value;
-    const remember = document.getElementById('remember-me').checked;
-    const res = await fetch(`${baseUrl}/auth/login`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username: u, password: p})});
+    e.preventDefault()
+    authMessage.textContent = ''
+    const u = document.getElementById('login-username').value
+    const p = document.getElementById('login-password').value
+    const remember = document.getElementById('remember-me').checked
+    const res = await fetch(`${baseUrl}/auth/login`, {
+      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username: u, password: p})
+    })
     if(res.ok) {
-      token = await res.text();
-      username = u;
+      token = await res.text()
+      username = u
       if(remember) {
-        localStorage.setItem('bd_username', u);
-        localStorage.setItem('bd_token', token);
+        localStorage.setItem('bd_username', u)
+        localStorage.setItem('bd_token', token)
       } else {
-        localStorage.removeItem('bd_username');
-        localStorage.removeItem('bd_token');
+        localStorage.removeItem('bd_username')
+        localStorage.removeItem('bd_token')
       }
-      showChat();
-    } else authMessage.textContent='Login failed';
-  };
+      showChat()
+    } else authMessage.textContent='Login failed'
+  }
 
-  // Show chat view and start polling
-  function showChat() {
-  authContainer.classList.add('hidden');
-  chatView.classList.remove('hidden');
-  userDisplay.textContent = username;
-  loadContacts();
-  loadConversation();
-  setInterval(loadConversation, 5000);
-  setInterval(loadContacts, 7000);
-}
-
-
-  // Logout clears storage and reloads
   document.getElementById('logout-btn').onclick = () => {
-    localStorage.removeItem('bd_token');
-    localStorage.removeItem('bd_username');
-    location.reload();
-  };
+    localStorage.removeItem('bd_token')
+    localStorage.removeItem('bd_username')
+    location.reload()
+  }
 
-  // Contacts list API
-  async function loadContacts() {
-    const res = await fetch(`${baseUrl}/messages/contacts`, { headers:{'Authorization':'Bearer '+token}});
-    const contacts = res.ok?await res.json():[];
-    const list = document.getElementById('contacts-list'); list.innerHTML = '';
-    contacts.forEach(c => {
-      const li = document.createElement('li');
-      li.classList.add('p-2','border-b','cursor-pointer','hover:bg-gray-200');
-      li.textContent = c.username || c.publicId;
+  btnInbox.onclick = () => { highlightTab('inbox'); loadInbox() }
+  btnContacts.onclick = () => { highlightTab('contacts'); loadContacts() }
+
+  function highlightTab(tab) {
+    if(tab==='inbox') {
+      btnInbox.classList.add('bg-blue-600','text-white')
+      btnContacts.classList.remove('bg-blue-600','text-white')
+      btnContacts.classList.add('bg-gray-200')
+    } else {
+      btnContacts.classList.add('bg-blue-600','text-white')
+      btnInbox.classList.remove('bg-blue-600','text-white')
+      btnInbox.classList.add('bg-gray-200')
+    }
+  }
+
+  function showChat() {
+    document.getElementById('auth-container').classList.add('hidden')
+    chatView.classList.remove('hidden')
+    userDisplay.textContent = username
+    highlightTab('inbox')
+    loadInbox()
+    setInterval(loadInbox,7000)
+    setInterval(loadConversation,5000)
+  }
+
+  async function loadInbox() {
+    const res = await fetch(`${baseUrl}/messages/inbox`,{ headers:{ 'Authorization':'Bearer '+token }})
+    const items = res.ok?await res.json():[]
+    sidebarList.innerHTML = ''
+    items.forEach(c => {
+      const li = document.createElement('li')
+      li.classList.add('p-2','border-b','cursor-pointer','hover:bg-gray-200')
+      li.textContent = c.username||c.publicId
       li.onclick = () => {
-        document.getElementById('type').value = c.username?'username':'public';
-        document.getElementById('user2').value = c.username||c.publicId;
-        loadConversation();
-      };
-      list.appendChild(li);
-    });
+        document.getElementById('type').value = c.username?'username':'public'
+        document.getElementById('user2').value = c.username||c.publicId
+        loadConversation()
+      }
+      sidebarList.appendChild(li)
+    })
   }
 
-  // Send message API
+  async function loadContacts() {
+    const res = await fetch(`${baseUrl}/messages/contacts`,{ headers:{ 'Authorization':'Bearer '+token }})
+    const items = res.ok?await res.json():[]
+    sidebarList.innerHTML = ''
+    items.forEach(c => {
+      const li = document.createElement('li')
+      li.classList.add('p-2','border-b','cursor-pointer','hover:bg-gray-200')
+      li.textContent = c.username||c.publicId
+      li.onclick = () => {
+        document.getElementById('type').value = c.username?'username':'public'
+        document.getElementById('user2').value = c.username||c.publicId
+        loadConversation()
+      }
+      sidebarList.appendChild(li)
+    })
+  }
+
   document.getElementById('send-btn').onclick = async () => {
-    const r = document.getElementById('user2').value;
-    const t = document.getElementById('type').value;
-    const content = document.getElementById('message-input').value;
-    const body = t==='public'?{recipientPublicId:parseInt(r),content}:{recipientUsername:r,content};
-    await fetch(`${baseUrl}/messages/send`, { method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token}, body:JSON.stringify(body)});
-    document.getElementById('message-input').value = '';
-    loadConversation();
-  };
-
-  // Conversation API
-  async function loadConversation() {
-  const r = document.getElementById('user2').value.trim();
-  const t = document.getElementById('type').value;
-  if (!r) return;
-
-  const res = await fetch(`${baseUrl}/messages/conversation?user2=${encodeURIComponent(r)}&type=${t}`, {
-    headers: { 'Authorization': 'Bearer ' + token }
-  });
-
-  const msgs = res.ok ? await res.json() : [];
-  const c = document.getElementById('messages');
-  c.innerHTML = '';
-
-  const patchPromises = [];
-
-  msgs.forEach(m => {
-    const d = document.createElement('div');
-    d.classList.add('mb-2', 'p-2', 'rounded', 'bg-white', 'shadow-sm');
-    const isMe = m.sender.username === username;
-
-    let tick = '';
-    if (isMe) {
-      tick = m.read ? ' <span class="text-blue-500">✅✅</span>' : ' <span class="text-gray-500">✅</span>';
-    }
-
-    d.innerHTML = `<strong>${m.sender.username || m.sender.publicId}</strong>: ${m.content}${tick}`;
-    c.appendChild(d);
-
-    if (!isMe && !m.read) {
-      patchPromises.push(
-        fetch(`${baseUrl}/messages/mark-read/${m.id}`, {
-          method: 'PATCH',
-          headers: { 'Authorization': 'Bearer ' + token }
-        })
-      );
-    }
-  });
-
-
-  if (patchPromises.length > 0) {
-    await Promise.all(patchPromises);
+    const r = document.getElementById('user2').value
+    const t = document.getElementById('type').value
+    const content = document.getElementById('message-input').value
+    const body = t==='public'?{recipientPublicId:parseInt(r),content}:{recipientUsername:r,content}
+    await fetch(`${baseUrl}/messages/send`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+      body:JSON.stringify(body)
+    })
+    document.getElementById('message-input').value = ''
+    loadConversation()
   }
 
-  c.scrollTop = c.scrollHeight;
-}
+  async function deleteMessage(id,type) {
+    await fetch(`${baseUrl}/messages/delete/${id}?type=${type}`,{
+      method:'PATCH',
+      headers:{ 'Authorization':'Bearer '+token }
+    })
+    loadConversation()
+  }
 
+  function openDeleteModal(id,isMe) {
+    pendingDeleteId = id
+    const modal = document.getElementById('delete-modal')
+    modal.classList.remove('hidden')
+    modal.classList.add('flex')
+    document.getElementById('delete-double').style.display = isMe?'inline-block':'none'
+  }
 
+  function closeDeleteModal() {
+    document.getElementById('delete-modal').classList.add('hidden')
+    pendingDeleteId = null
+  }
 
+  document.getElementById('delete-one').onclick = async () => {
+    await deleteMessage(pendingDeleteId,'one')
+    closeDeleteModal()
+  }
+  document.getElementById('delete-double').onclick = async () => {
+    await deleteMessage(pendingDeleteId,'double')
+    closeDeleteModal()
+  }
+
+  async function loadConversation() {
+    const r = document.getElementById('user2').value.trim()
+    const t = document.getElementById('type').value
+    if(!r) return
+    const res = await fetch(`${baseUrl}/messages/conversation?user2=${encodeURIComponent(r)}&type=${t}`,{
+      headers:{ 'Authorization':'Bearer '+token }
+    })
+    const msgs = res.ok?await res.json():[]
+    const c = document.getElementById('messages')
+    c.innerHTML = ''
+    const patches = []
+    msgs.forEach(m => {
+      const d = document.createElement('div')
+      d.classList.add('mb-2','p-2','rounded','bg-white','shadow-sm','flex','justify-between','items-center')
+      const isMe = m.sender.username===username
+      let tick = ''
+      if(isMe) tick = m.read?' ✅✅':' ✅'
+      const txt = document.createElement('span')
+      txt.innerHTML = `<strong>${m.sender.username||m.sender.publicId}</strong>: ${m.content}${tick}`
+      d.appendChild(txt)
+      const btn = document.createElement('button')
+      btn.innerHTML = `<span class="text-red-500 text-xl font-bold">✖</span>`
+      btn.onclick = () => openDeleteModal(m.id,isMe)
+      d.appendChild(btn)
+      if(!isMe&&!m.read) {
+        patches.push(fetch(`${baseUrl}/messages/mark-read/${m.id}`,{
+          method:'PATCH',
+          headers:{ 'Authorization':'Bearer '+token }
+        }))
+      }
+      c.appendChild(d)
+    })
+    if(patches.length) await Promise.all(patches)
+    c.scrollTop = c.scrollHeight
+  }
 </script>
 </body>
 </html>
