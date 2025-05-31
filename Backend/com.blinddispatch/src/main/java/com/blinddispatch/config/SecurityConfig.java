@@ -27,6 +27,9 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/auth/**").permitAll()
+                        .requestMatchers("/index.html/**").permitAll()
+                        .requestMatchers("/index.html").permitAll()
+                        .requestMatchers("/").permitAll()
                         .requestMatchers("/messages/**").authenticated()
                         .requestMatchers("/h2/**").permitAll()
                         .anyRequest().authenticated()
@@ -34,10 +37,10 @@ public class SecurityConfig {
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .headers(headers -> headers
                         .frameOptions(frame -> frame.disable())
-                )
-                .httpBasic(Customizer.withDefaults());
+                );
         return http.build();
     }
+
 
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
